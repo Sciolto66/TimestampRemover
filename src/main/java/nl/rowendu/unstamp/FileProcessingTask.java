@@ -32,7 +32,7 @@ public class FileProcessingTask extends Task<FileProcessingTask.ProcessingResult
     updateMessage("Analyzing file...");
 
     long totalLines = countTotalLines();
-    if (cancelled.get()) return new ProcessingResult(false, 0, 0);
+    if (cancelled.get()) return new ProcessingResult(false, 0, 0, 0);
 
     return processFileContent(totalLines);
   }
@@ -69,7 +69,8 @@ public class FileProcessingTask extends Task<FileProcessingTask.ProcessingResult
       if (cancelled.get()) {
         cleanupTempFile(tempFile);
         updateProgress(1, 1);
-        return new ProcessingResult(totalModifiedLines > 0, totalProcessedLines, totalModifiedLines);
+        return new ProcessingResult(totalModifiedLines > 0,
+                totalProcessedLines, totalModifiedLines, currentCycle);
       }
 
       if (madeChanges) {
@@ -95,7 +96,8 @@ public class FileProcessingTask extends Task<FileProcessingTask.ProcessingResult
         "Processing completed after {} cycles. Total modified lines: {}",
         currentCycle,
         totalModifiedLines);
-    return new ProcessingResult(totalModifiedLines > 0, totalProcessedLines, totalModifiedLines);
+    return new ProcessingResult(totalModifiedLines > 0,
+            totalProcessedLines, totalModifiedLines, currentCycle);
   }
 
   private ProcessCycleResult processCycle(File inputFile, File outputFile, long totalLines,
@@ -178,8 +180,8 @@ public class FileProcessingTask extends Task<FileProcessingTask.ProcessingResult
   private void updateUIOnSuccess(ProcessingResult result) {
     if (result.filesChanged) {
       updateMessage(String.format(
-          "Status: Completed - %s (%d/%d lines modified)",
-          file.getName(), result.modifiedLines, result.processedLines));
+          "Status: Completed - %s (%d lines modified in %d cycles)",
+          file.getName(), result.modifiedLines, result.cycles));
     } else {
       updateMessage(String.format("Status: No changes needed - %s", file.getName()));
     }
@@ -209,7 +211,7 @@ public class FileProcessingTask extends Task<FileProcessingTask.ProcessingResult
     Platform.runLater(() -> updateMessage("Status: Cancelled"));
   }
 
-  public record ProcessingResult(boolean filesChanged, long processedLines, long modifiedLines) {}
+  public record ProcessingResult(boolean filesChanged, long processedLines, long modifiedLines, int cycles) {}
 
   private record ProcessCycleResult(long processedLines, long modifiedLines) {}
 
