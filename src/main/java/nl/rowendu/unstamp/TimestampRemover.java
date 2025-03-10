@@ -2,6 +2,8 @@ package nl.rowendu.unstamp;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.prefs.Preferences;
+
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -16,7 +18,8 @@ import org.slf4j.LoggerFactory;
 
 public class TimestampRemover extends Application {
   private static final Logger logger = LoggerFactory.getLogger(TimestampRemover.class);
-
+  private static final Preferences prefs = Preferences.userNodeForPackage(TimestampRemover.class);
+  private static final String LAST_DIR_KEY = "lastDirectory";
   private final ProgressBar progressBar = new ProgressBar(0);
   private final Label statusLabel = new Label("Status: Ready");
   private final AtomicBoolean taskCancelled = new AtomicBoolean(false);
@@ -64,8 +67,10 @@ public class TimestampRemover extends Application {
   }
 
   private void setupFileChooser(Button openButton) {
-    FileChooser fileChooser = createFileChooser();
-    openButton.setOnAction(event -> handleFileSelection(fileChooser));
+    openButton.setOnAction(event -> {
+      FileChooser fileChooser = createFileChooser();
+      handleFileSelection(fileChooser);
+    });
   }
 
   private FileChooser createFileChooser() {
@@ -76,12 +81,22 @@ public class TimestampRemover extends Application {
         .addAll(
             new FileChooser.ExtensionFilter("Log Files", "*.txt", "*.log"),
             new FileChooser.ExtensionFilter("All Files", "*.*"));
+
+    // Get the last used directory from preferences and set it if available
+    String lastDir = prefs.get(LAST_DIR_KEY, null);
+    if (lastDir != null) {
+      File initialDir = new File(lastDir);
+      if (initialDir.exists()) {
+        fileChooser.setInitialDirectory(initialDir);
+      }
+    }
     return fileChooser;
   }
 
   private void handleFileSelection(FileChooser fileChooser) {
     File selectedFile = fileChooser.showOpenDialog(null);
     if (selectedFile != null) {
+      prefs.put(LAST_DIR_KEY, selectedFile.getParent());
       logger.info("Processing file: {}", selectedFile.getAbsolutePath());
       processFile(selectedFile);
     }
